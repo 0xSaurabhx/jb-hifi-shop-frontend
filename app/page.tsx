@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search, ShoppingCart, User, MapPin, BarChart2, ChevronLeft, ChevronRight, X, Mic, Upload, LogOut } from "lucide-react";
 import ChatBotV2 from "@/components/chat-botv2";
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import SearchAnimation from "@/components/animations/SearchAnimation";
 import axios from 'axios';
@@ -92,8 +92,13 @@ export default function Home() {
 
   const handleMicClick = () => {
     setSearchType('voice');
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+    try {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        console.error('Speech recognition not supported');
+        return;
+      }
+
       const recognition = new SpeechRecognition();
 
       recognition.onstart = () => {
@@ -113,6 +118,8 @@ export default function Home() {
       };
 
       recognition.start();
+    } catch (error) {
+      console.error('Speech recognition error:', error);
     }
   };
 
@@ -304,7 +311,7 @@ export default function Home() {
         <main className="flex-1 bg-yellow-300">
           {searchResults.length > 0 && (
             <div className="container mx-auto px-4 py-6">
-              <h2 className="text-2xl font-bold mb-6">Search Results for "{searchQuery}"</h2>
+              <h2 className="text-2xl font-bold mb-6">Search Results for &quot;{searchQuery}&quot;</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {searchResults.map((product) => (
                   <div 
@@ -436,6 +443,7 @@ export default function Home() {
           onClose={() => setShowLoginPopup(false)}
           onLogin={handleLogin}
           onContinueAsGuest={handleContinueAsGuest}
+          error={loginError}
         />
       </div>
     </>
