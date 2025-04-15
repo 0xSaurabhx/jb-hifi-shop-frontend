@@ -33,46 +33,35 @@ export default function Home() {
 
   const { user, isAuthenticated, login, loginAsGuest, logout, getUserId, isTemporaryGuest } = useAuth();
 
+  const API_BASE_URL = 'https://jb-hifi-search-backend-947132053690.us-central1.run.app';
+
   const handleImageSearch = async (base64Image: string) => {
     setIsSearching(true);
     try {
       const userId = getUserId();
-      const url = `https://jb-hifi-search-backend-947132053690.us-central1.run.app/search/image${userId ? `?user_id=${userId}` : ''}`;
+      const url = `${API_BASE_URL}/search/image${userId ? `?user_id=${userId}` : ''}`;
       
       const response = await axios({
         method: 'post',
         url: url,
         data: { image: base64Image },
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        maxRedirects: 0, // Prevent automatic redirects
-        validateStatus: (status) => status >= 200 && status < 400 // Accept 2xx and 3xx responses
+        maxRedirects: 5,
+        validateStatus: (status) => status >= 200 && status < 400
       });
 
-      // If we get a redirect response, follow it manually
-      if (response.status === 307 || response.status === 308) {
-        const redirectUrl = response.headers.location;
-        if (redirectUrl) {
-          const finalResponse = await axios.post(redirectUrl, { image: base64Image }, {
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          if (finalResponse.data) {
-            setSearchResults(finalResponse.data);
-          }
-        }
-      } else if (response.data) {
+      if (response.data) {
         setSearchResults(response.data);
       }
     } catch (error) {
       console.error('Image search failed:', error);
-      if (axios.isAxiosError(error)) {
-        console.error('Error details:', {
-          status: error.response?.status,
-          headers: error.response?.headers,
-          data: error.response?.data
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('Error response:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
         });
       }
     } finally {
@@ -150,17 +139,13 @@ export default function Home() {
     setIsSearching(true);
     try {
       const userId = getUserId();
-      const url = new URL('https://jb-hifi-search-backend-947132053690.us-central1.run.app/search/');
-      url.searchParams.append('q', searchQuery);
+      const searchUrl = new URL(`${API_BASE_URL}/search/`);
+      searchUrl.searchParams.append('q', searchQuery);
       if (userId) {
-        url.searchParams.append('user_id', userId.toString());
+        searchUrl.searchParams.append('user_id', userId.toString());
       }
 
-      const response = await axios.get(url.toString(), {
-        headers: {
-          'Access-Control-Allow-Origin': '*'
-        }
-      });
+      const response = await axios.get(searchUrl.toString());
       setSearchResults(response.data);
     } catch (error) {
       console.error('Text search failed:', error);

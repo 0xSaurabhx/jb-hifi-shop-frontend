@@ -35,6 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isTemporaryGuest, setIsTemporaryGuest] = useState(false);
 
+  const API_BASE_URL = 'https://jb-hifi-search-backend-947132053690.us-central1.run.app';
+
   useEffect(() => {
     // Check localStorage on mount
     const storedToken = localStorage.getItem('token');
@@ -57,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       formData.append('client_secret', 'string');
 
       const response = await axios.post<AuthResponse>(
-        'https://jb-hifi-search-backend-947132053690.us-central1.run.app/auth/login',
+        `${API_BASE_URL}/auth/login`,
         formData,
         {
           headers: {
