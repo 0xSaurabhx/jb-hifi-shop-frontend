@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    allowMiddlewareResponseBody: true,
+  },
 };
 
 export default nextConfig;

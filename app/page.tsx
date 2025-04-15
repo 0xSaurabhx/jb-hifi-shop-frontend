@@ -39,21 +39,42 @@ export default function Home() {
       const userId = getUserId();
       const url = `https://jb-hifi-search-backend-947132053690.us-central1.run.app/search/image${userId ? `?user_id=${userId}` : ''}`;
       
-      const response = await axios.post(url, 
-        { image: base64Image },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+      const response = await axios({
+        method: 'post',
+        url: url,
+        data: { image: base64Image },
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        maxRedirects: 0, // Prevent automatic redirects
+        validateStatus: (status) => status >= 200 && status < 400 // Accept 2xx and 3xx responses
+      });
+
+      // If we get a redirect response, follow it manually
+      if (response.status === 307 || response.status === 308) {
+        const redirectUrl = response.headers.location;
+        if (redirectUrl) {
+          const finalResponse = await axios.post(redirectUrl, { image: base64Image }, {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          if (finalResponse.data) {
+            setSearchResults(finalResponse.data);
           }
         }
-      );
-      
-      if (response.data) {
+      } else if (response.data) {
         setSearchResults(response.data);
       }
     } catch (error) {
       console.error('Image search failed:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Error details:', {
+          status: error.response?.status,
+          headers: error.response?.headers,
+          data: error.response?.data
+        });
+      }
     } finally {
       setIsSearching(false);
     }
