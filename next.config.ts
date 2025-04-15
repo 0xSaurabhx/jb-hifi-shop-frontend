@@ -19,6 +19,19 @@ const nextConfig: NextConfig = {
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
         ],
       },
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains'
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "upgrade-insecure-requests"
+          }
+        ],
+      },
     ];
   },
 };

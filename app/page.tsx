@@ -33,12 +33,14 @@ export default function Home() {
 
   const { user, isAuthenticated, login, loginAsGuest, logout, getUserId, isTemporaryGuest } = useAuth();
 
+  // Make sure to use HTTPS for the API base URL
   const API_BASE_URL = 'https://jb-hifi-search-backend-947132053690.us-central1.run.app';
 
   const handleImageSearch = async (base64Image: string) => {
     setIsSearching(true);
     try {
       const userId = getUserId();
+      // Ensure HTTPS in URL
       const url = `${API_BASE_URL}/search/image${userId ? `?user_id=${userId}` : ''}`;
       
       const response = await axios({
@@ -57,11 +59,12 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Image search failed:', error);
-      if (axios.isAxiosError(error) && error.response) {
-        console.error('Error response:', {
-          status: error.response.status,
-          data: error.response.data,
-          headers: error.response.headers
+      // Add error details for debugging
+      if (axios.isAxiosError(error)) {
+        console.error('Error details:', {
+          message: error.message,
+          url: error.config?.url,
+          status: error.response?.status
         });
       }
     } finally {
