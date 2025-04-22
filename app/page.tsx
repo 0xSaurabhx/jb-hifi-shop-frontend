@@ -36,6 +36,10 @@ export default function Home() {
   // Make sure to use HTTPS for the API base URL
   const API_BASE_URL = 'https://jb-hifi-search-backend-947132053690.us-central1.run.app';
 
+  const handleLogoClick = () => {
+    window.location.reload();
+  };
+
   const handleImageSearch = async (base64Image: string) => {
     setIsSearching(true);
     try {
@@ -196,7 +200,7 @@ export default function Home() {
 
         <header className="bg-yellow-300 px-4 py-3">
           <div className="container mx-auto flex items-center justify-between">
-            <Link href="/" className="flex-shrink-0">
+            <Link href="/" onClick={handleLogoClick} className="flex-shrink-0">
               <div className="relative h-10 w-32">
                 <div className="font-black text-2xl">JB HI-FI</div>
                 <div className="text-[10px] font-bold uppercase">Always cheap prices</div>
