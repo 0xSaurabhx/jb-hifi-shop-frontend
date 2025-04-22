@@ -30,6 +30,7 @@ export default function Home() {
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [searchType, setSearchType] = useState<'text' | 'image' | 'voice'>('text');
+  const [imageError, setImageError] = useState<{[key: number]: boolean}>({});
 
   const { user, isAuthenticated, login, loginAsGuest, logout, getUserId, isTemporaryGuest } = useAuth();
 
@@ -186,6 +187,13 @@ export default function Home() {
     }
   };
 
+  const handleImageError = (productId: number) => {
+    setImageError(prev => ({
+      ...prev,
+      [productId]: true
+    }));
+  };
+
   return (
     <>
       <div className="flex min-h-screen flex-col">
@@ -338,10 +346,11 @@ export default function Home() {
                         </span>
                       </div>
                       <Image
-                        src={product.image}
+                        src={imageError[product.id] ? '/default-image.png' : product.image}
                         width={200}
                         height={200}
                         alt={product.name}
+                        onError={() => handleImageError(product.id)}
                         className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
