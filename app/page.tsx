@@ -195,6 +195,8 @@ export default function Home() {
     }));
   };
 
+  const showPersonalizationDropdown = isAuthenticated && !user?.isGuest;
+
   return (
     <>
       <div className="flex min-h-screen flex-col">
@@ -335,19 +337,21 @@ export default function Home() {
             <div className="container mx-auto px-4 py-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold">Search Results for &quot;{searchQuery}&quot;</h2>
-                <div className="relative">
-                  <select
-                    value={showPersonalized ? 'personalized' : 'general'}
-                    onChange={(e) => {
-                      setShowPersonalized(e.target.value === 'personalized');
-                      handleSearch();
-                    }}
-                    className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  >
-                    <option value="personalized">Personalized Results</option>
-                    <option value="general">General Results</option>
-                  </select>
-                </div>
+                {showPersonalizationDropdown && (
+                  <div className="relative">
+                    <select
+                      value={showPersonalized ? 'personalized' : 'general'}
+                      onChange={(e) => {
+                        setShowPersonalized(e.target.value === 'personalized');
+                        handleSearch();
+                      }}
+                      className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    >
+                      <option value="personalized">General Results</option>
+                      <option value="general">Personalized Results</option>
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {searchResults.map((product) => (
