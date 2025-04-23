@@ -415,26 +415,29 @@ export default function Home() {
                 <h2 className="text-2xl font-bold">Search Results for &quot;{searchQuery}&quot;</h2>
                 
                 {personalizedMessage && showPersonalized && (
-                  <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-lg p-4 border border-indigo-200 shadow-lg backdrop-blur-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full">
+                  <div className="bg-gradient-to-r from-yellow-300/20 to-yellow-400/20 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
+                    <div className="flex items-start gap-4 p-4">
+                      <div className="mt-1 p-2.5 bg-gradient-to-r from-yellow-300 to-yellow-400 rounded-lg border-2 border-black">
                         <svg
-                          className="w-4 h-4 text-white"
+                          className="w-5 h-5 text-black"
                           fill="none"
-                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
                           viewBox="0 0 24 24"
+                          stroke="currentColor"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 10V3L4 14h7v7l9-11h-7z"
-                          />
+                          <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">AI-Powered Recommendation</p>
-                        <p className="mt-1 text-base text-gray-700">{personalizedMessage}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-black text-black">AI-Powered Results</p>
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-yellow-300 text-black rounded-full border border-black">
+                            SMART SEARCH
+                          </span>
+                        </div>
+                        <p className="text-base text-gray-800">{personalizedMessage}</p>
                       </div>
                     </div>
                   </div>
