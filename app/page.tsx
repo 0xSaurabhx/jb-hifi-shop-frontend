@@ -21,11 +21,17 @@ interface Product {
   image: string;
 }
 
+interface SearchResponse {
+  message?: string;
+  results: Product[];
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [personalizedMessage, setPersonalizedMessage] = useState<string>('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -155,8 +161,9 @@ export default function Home() {
         searchUrl.searchParams.append('user_id', userId.toString());
       }
 
-      const response = await axios.get(searchUrl.toString());
-      setSearchResults(response.data);
+      const response = await axios.get<SearchResponse>(searchUrl.toString());
+      setSearchResults(response.data.results);
+      setPersonalizedMessage(personalized ? response.data.message || '' : '');
     } catch (error) {
       console.error('Text search failed:', error);
     } finally {
@@ -404,10 +411,37 @@ export default function Home() {
         <main className="flex-1 bg-yellow-300">
           {searchResults.length > 0 && (
             <div className="container mx-auto px-4 py-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col gap-4 mb-6">
                 <h2 className="text-2xl font-bold">Search Results for &quot;{searchQuery}&quot;</h2>
+                
+                {personalizedMessage && showPersonalized && (
+                  <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-lg p-4 border border-indigo-200 shadow-lg backdrop-blur-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1 p-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">AI-Powered Recommendation</p>
+                        <p className="mt-1 text-base text-gray-700">{personalizedMessage}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {showPersonalizationDropdown && (
-                  <div className="relative">
+                  <div className="flex justify-end">
                     <select
                       value={showPersonalized ? 'personalized' : 'general'}
                       onChange={(e) => {
@@ -423,6 +457,7 @@ export default function Home() {
                   </div>
                 )}
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {searchResults.map((product, index) => renderProductCard(product, index))}
               </div>
