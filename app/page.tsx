@@ -415,8 +415,8 @@ export default function Home() {
                       }}
                       className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     >
-                      <option value="personalized">General Results</option>
-                      <option value="general">Personalized Results</option>
+                      <option value="general">General Results</option>
+                      <option value="personalized">Personalized Results</option>
                     </select>
                   </div>
                 )}
