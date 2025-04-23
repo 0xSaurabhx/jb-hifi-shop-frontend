@@ -142,15 +142,16 @@ export default function Home() {
     }
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (usePersonalized?: boolean) => {
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     try {
+      const personalized = usePersonalized ?? showPersonalized;
       const userId = getUserId();
       const searchUrl = new URL(`${API_BASE_URL}/search/`);
       searchUrl.searchParams.append('q', searchQuery);
-      if (showPersonalized && userId) {
+      if (personalized && userId) {
         searchUrl.searchParams.append('user_id', userId.toString());
       }
 
@@ -410,8 +411,9 @@ export default function Home() {
                     <select
                       value={showPersonalized ? 'personalized' : 'general'}
                       onChange={(e) => {
-                        setShowPersonalized(e.target.value === 'personalized');
-                        handleSearch();
+                        const newPers = e.target.value === 'personalized';
+                        setShowPersonalized(newPers);
+                        handleSearch(newPers);
                       }}
                       className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     >
