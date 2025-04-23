@@ -203,18 +203,24 @@ export default function Home() {
     return (
       <div 
         key={product.id} 
-        className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+        className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden relative"
       >
+        {showTrending && (
+          <div className="absolute top-4 right-4 z-20">
+            <div className="relative">
+              <div className="absolute inset-0 bg-red-500 blur-sm opacity-50"></div>
+              <span className="relative px-3 py-1 bg-gradient-to-r from-red-500 to-orange-500 text-white text-sm font-bold rounded-full border border-white/20 shadow-lg flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                Trending
+              </span>
+            </div>
+          </div>
+        )}
         <div className="relative h-48 bg-gray-100 p-4">
-          <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
+          <div className="absolute top-2 left-2 z-10">
             <span className="bg-yellow-300 text-black px-3 py-1 rounded-md text-sm font-bold border-2 border-black">
               {product.brand}
             </span>
-            {showTrending && (
-              <span className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-bold animate-pulse">
-                Trending
-              </span>
-            )}
           </div>
           <Image
             src={imageError[product.id] ? '/default-image.png' : product.image}
@@ -409,8 +415,8 @@ export default function Home() {
                       }}
                       className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     >
-                      <option value="personalized">General Results</option>
-                      <option value="general">Personalized Results</option>
+                      <option value="general">General Results</option>
+                      <option value="personalized">Personalized Results</option>
                     </select>
                   </div>
                 )}
