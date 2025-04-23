@@ -197,6 +197,68 @@ export default function Home() {
 
   const showPersonalizationDropdown = isAuthenticated && !user?.isGuest;
 
+  const renderProductCard = (product: Product, index: number) => {
+    const showTrending = !showPersonalized && index < 2;
+
+    return (
+      <div 
+        key={product.id} 
+        className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+      >
+        <div className="relative h-48 bg-gray-100 p-4">
+          <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
+            <span className="bg-yellow-300 text-black px-3 py-1 rounded-md text-sm font-bold border-2 border-black">
+              {product.brand}
+            </span>
+            {showTrending && (
+              <span className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-bold animate-pulse">
+                Trending
+              </span>
+            )}
+          </div>
+          <Image
+            src={imageError[product.id] ? '/default-image.png' : product.image}
+            width={200}
+            height={200}
+            alt={product.name}
+            onError={() => handleImageError(product.id)}
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+
+        <div className="p-4">
+          <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+            {product.name}
+          </h3>
+
+          <div className="flex items-center mb-2">
+            <div className="flex text-yellow-400">
+              {[...Array(5)].map((_, i) => (
+                <svg
+                  key={i}
+                  className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'fill-current' : 'fill-gray-300'}`}
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+            </div>
+            <span className="text-sm text-gray-500 ml-2">({product.rating})</span>
+          </div>
+
+          <div className="flex items-baseline mb-4">
+            <span className="text-2xl font-black text-black">${product.price}</span>
+          </div>
+
+          <button className="w-full bg-yellow-300 border-2 border-black py-2 rounded-lg font-bold hover:bg-yellow-400 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
+            <ShoppingCart className="h-4 w-4" />
+            Add to Cart
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <div className="flex min-h-screen flex-col">
@@ -354,58 +416,7 @@ export default function Home() {
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {searchResults.map((product) => (
-                  <div 
-                    key={product.id} 
-                    className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
-                  >
-                    <div className="relative h-48 bg-gray-100 p-4">
-                      <div className="absolute top-2 left-2 z-10">
-                        <span className="bg-yellow-300 text-black px-3 py-1 rounded-md text-sm font-bold border-2 border-black">
-                          {product.brand}
-                        </span>
-                      </div>
-                      <Image
-                        src={imageError[product.id] ? '/default-image.png' : product.image}
-                        width={200}
-                        height={200}
-                        alt={product.name}
-                        onError={() => handleImageError(product.id)}
-                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-
-                    <div className="p-4">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                        {product.name}
-                      </h3>
-
-                      <div className="flex items-center mb-2">
-                        <div className="flex text-yellow-400">
-                          {[...Array(5)].map((_, i) => (
-                            <svg
-                              key={i}
-                              className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'fill-current' : 'fill-gray-300'}`}
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-500 ml-2">({product.rating})</span>
-                      </div>
-
-                      <div className="flex items-baseline mb-4">
-                        <span className="text-2xl font-black text-black">${product.price}</span>
-                      </div>
-
-                      <button className="w-full bg-yellow-300 border-2 border-black py-2 rounded-lg font-bold hover:bg-yellow-400 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
-                        <ShoppingCart className="h-4 w-4" />
-                        Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                {searchResults.map((product, index) => renderProductCard(product, index))}
               </div>
             </div>
           )}
