@@ -31,6 +31,7 @@ export default function Home() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [searchType, setSearchType] = useState<'text' | 'image' | 'voice'>('text');
   const [imageError, setImageError] = useState<{[key: number]: boolean}>({});
+  const [showPersonalized, setShowPersonalized] = useState(true);
 
   const { user, isAuthenticated, login, loginAsGuest, logout, getUserId, isTemporaryGuest } = useAuth();
 
@@ -149,7 +150,7 @@ export default function Home() {
       const userId = getUserId();
       const searchUrl = new URL(`${API_BASE_URL}/search/`);
       searchUrl.searchParams.append('q', searchQuery);
-      if (userId) {
+      if (showPersonalized && userId) {
         searchUrl.searchParams.append('user_id', userId.toString());
       }
 
@@ -332,7 +333,22 @@ export default function Home() {
         <main className="flex-1 bg-yellow-300">
           {searchResults.length > 0 && (
             <div className="container mx-auto px-4 py-6">
-              <h2 className="text-2xl font-bold mb-6">Search Results for &quot;{searchQuery}&quot;</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Search Results for &quot;{searchQuery}&quot;</h2>
+                <div className="relative">
+                  <select
+                    value={showPersonalized ? 'personalized' : 'general'}
+                    onChange={(e) => {
+                      setShowPersonalized(e.target.value === 'personalized');
+                      handleSearch();
+                    }}
+                    className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  >
+                    <option value="personalized">Personalized Results</option>
+                    <option value="general">General Results</option>
+                  </select>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {searchResults.map((product) => (
                   <div 
