@@ -19,6 +19,7 @@ interface Product {
   rating: number;
   price: string;
   image: string;
+  stock: number;
 }
 
 interface SearchResponse {
@@ -207,6 +208,37 @@ export default function Home() {
 
   const renderProductCard = (product: Product, index: number) => {
     const showTrending = !showPersonalized && index < 2;
+    const showTimer = !showPersonalized && product.stock <= 10;
+    
+    const stockMessage = showTimer ? (
+      <div className="absolute top-4 right-4 z-20">
+        <div className="relative">
+          <div className="absolute inset-0 bg-red-500 blur-sm opacity-50"></div>
+          <div className="relative px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-bold rounded-full border border-white/20 shadow-lg flex items-center gap-2">
+            <svg 
+              className="w-4 h-4 animate-spin" 
+              fill="none" 
+              viewBox="0 0 24 24"
+            >
+              <circle 
+                className="opacity-25" 
+                cx="12" 
+                cy="12" 
+                r="10" 
+                stroke="currentColor" 
+                strokeWidth="4"
+              />
+              <path 
+                className="opacity-75" 
+                fill="currentColor" 
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            <span>3h left • {product.stock} left</span>
+          </div>
+        </div>
+      </div>
+    ) : null;
 
     return (
       <div 
@@ -224,6 +256,7 @@ export default function Home() {
             </div>
           </div>
         )}
+        {stockMessage}
         <div className="relative h-48 bg-gray-100 p-4">
           <div className="absolute top-2 left-2 z-10">
             <span className="bg-yellow-300 text-black px-3 py-1 rounded-md text-sm font-bold border-2 border-black">
