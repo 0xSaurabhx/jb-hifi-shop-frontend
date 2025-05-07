@@ -306,6 +306,46 @@ export default function Home() {
     );
   };
 
+  // Add new state for filters
+  const [filters, setFilters] = useState({
+    brand: '',
+    rating: '',
+    price: ''
+  });
+
+  // Add filter options
+  const filterOptions = {
+    price: [
+      { label: 'All Prices', value: '' },
+      { label: 'Under $100', value: '0-100' },
+      { label: '$100 - $200', value: '100-200' },
+      { label: 'Over $200', value: '200+' }
+    ],
+    rating: [
+      { label: 'All Ratings', value: '' },
+      { label: '4.5 & Up', value: '4.5' },
+      { label: '4.0 & Up', value: '4.0' },
+      { label: '3.5 & Up', value: '3.5' }
+    ]
+  };
+
+  // Add filter function
+  const getFilteredResults = () => {
+    return searchResults.filter(product => {
+      const matchBrand = !filters.brand || product.brand === filters.brand;
+      const matchRating = !filters.rating || product.rating >= parseFloat(filters.rating);
+      const matchPrice = !filters.price || (() => {
+        const [min, max] = filters.price.split('-');
+        const price = parseFloat(product.price);
+        if (max === '+') return price >= parseFloat(min);
+        if (min && max) return price >= parseFloat(min) && price <= parseFloat(max);
+        return true;
+      })();
+      
+      return matchBrand && matchRating && matchPrice;
+    });
+  };
+
   return (
     <>
       <div className="flex min-h-screen flex-col">
@@ -476,8 +516,42 @@ export default function Home() {
                   </div>
                 )}
 
-                {showPersonalizationDropdown && (
-                  <div className="flex justify-end">
+                <div className="flex justify-end items-center gap-3">
+                  {/* Brand filter */}
+                  <select
+                    value={filters.brand}
+                    onChange={(e) => setFilters(prev => ({ ...prev, brand: e.target.value }))}
+                    className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  >
+                    <option value="">All Brands</option>
+                    {Array.from(new Set(searchResults.map(p => p.brand))).map(brand => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                  </select>
+
+                  {/* Rating filter */}
+                  <select
+                    value={filters.rating}
+                    onChange={(e) => setFilters(prev => ({ ...prev, rating: e.target.value }))}
+                    className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  >
+                    {filterOptions.rating.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+
+                  {/* Price filter */}
+                  <select
+                    value={filters.price}
+                    onChange={(e) => setFilters(prev => ({ ...prev, price: e.target.value }))}
+                    className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  >
+                    {filterOptions.price.map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+
+                  {showPersonalizationDropdown && (
                     <select
                       value={showPersonalized ? 'personalized' : 'general'}
                       onChange={(e) => {
@@ -490,12 +564,12 @@ export default function Home() {
                       <option value="general">General Results</option>
                       <option value="personalized">Personalized Results</option>
                     </select>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {searchResults.map((product, index) => renderProductCard(product, index))}
+                {getFilteredResults().map((product, index) => renderProductCard(product, index))}
               </div>
             </div>
           )}
