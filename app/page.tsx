@@ -306,20 +306,19 @@ export default function Home() {
     );
   };
 
-  // Add new state for filters
+  // Update filter state to include sort
   const [filters, setFilters] = useState({
     brand: '',
     rating: '',
-    price: ''
+    sort: '' // Changed from 'price' to 'sort'
   });
 
-  // Add filter options
+  // Update filter options
   const filterOptions = {
-    price: [
-      { label: 'All Prices', value: '' },
-      { label: 'Under $100', value: '0-100' },
-      { label: '$100 - $200', value: '100-200' },
-      { label: 'Over $200', value: '200+' }
+    sort: [
+      { label: 'Price: Default', value: '' },
+      { label: 'Price: Low to High', value: 'asc' },
+      { label: 'Price: High to Low', value: 'desc' }
     ],
     rating: [
       { label: 'All Ratings', value: '' },
@@ -329,21 +328,24 @@ export default function Home() {
     ]
   };
 
-  // Add filter function
+  // Update filter function
   const getFilteredResults = () => {
-    return searchResults.filter(product => {
+    let filteredProducts = searchResults.filter(product => {
       const matchBrand = !filters.brand || product.brand === filters.brand;
       const matchRating = !filters.rating || product.rating >= parseFloat(filters.rating);
-      const matchPrice = !filters.price || (() => {
-        const [min, max] = filters.price.split('-');
-        const price = parseFloat(product.price);
-        if (max === '+') return price >= parseFloat(min);
-        if (min && max) return price >= parseFloat(min) && price <= parseFloat(max);
-        return true;
-      })();
-      
-      return matchBrand && matchRating && matchPrice;
+      return matchBrand && matchRating;
     });
+
+    // Add price sorting
+    if (filters.sort) {
+      filteredProducts.sort((a, b) => {
+        const priceA = parseFloat(a.price);
+        const priceB = parseFloat(b.price);
+        return filters.sort === 'asc' ? priceA - priceB : priceB - priceA;
+      });
+    }
+
+    return filteredProducts;
   };
 
   return (
@@ -540,13 +542,13 @@ export default function Home() {
                     ))}
                   </select>
 
-                  {/* Price filter */}
+                  {/* Sort by price */}
                   <select
-                    value={filters.price}
-                    onChange={(e) => setFilters(prev => ({ ...prev, price: e.target.value }))}
+                    value={filters.sort}
+                    onChange={(e) => setFilters(prev => ({ ...prev, sort: e.target.value }))}
                     className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   >
-                    {filterOptions.price.map(option => (
+                    {filterOptions.sort.map(option => (
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
