@@ -330,7 +330,7 @@ export default function Home() {
 
   // Update filter function
   const getFilteredResults = () => {
-    let filteredProducts = searchResults.filter(product => {
+    const filteredProducts = searchResults.filter(product => {
       const matchBrand = !filters.brand || product.brand === filters.brand;
       const matchRating = !filters.rating || product.rating >= parseFloat(filters.rating);
       return matchBrand && matchRating;
@@ -338,7 +338,7 @@ export default function Home() {
 
     // Add price sorting
     if (filters.sort) {
-      filteredProducts.sort((a, b) => {
+      return [...filteredProducts].sort((a, b) => {
         const priceA = parseFloat(a.price);
         const priceB = parseFloat(b.price);
         return filters.sort === 'asc' ? priceA - priceB : priceB - priceA;
