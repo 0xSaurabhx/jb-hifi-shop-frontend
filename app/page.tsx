@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search, ShoppingCart, User, MapPin, BarChart2, ChevronLeft, ChevronRight, X, Mic, Upload, LogOut } from "lucide-react";
 import ChatBotV2 from "@/components/chat-botv2";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import SearchAnimation from "@/components/animations/SearchAnimation";
 import axios from 'axios';
@@ -39,6 +39,7 @@ export default function Home() {
   const [searchType, setSearchType] = useState<'text' | 'image' | 'voice'>('text');
   const [imageError, setImageError] = useState<{[key: number]: boolean}>({});
   const [showPersonalized, setShowPersonalized] = useState(true);
+  const [timers, setTimers] = useState<{[key: number]: number}>({});
 
   const { user, isAuthenticated, login, loginAsGuest, logout, getUserId, isTemporaryGuest } = useAuth();
 
@@ -206,10 +207,44 @@ export default function Home() {
 
   const showPersonalizationDropdown = isAuthenticated && !user?.isGuest;
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimers(prev => {
+        const newTimers = { ...prev };
+        Object.keys(newTimers).forEach(key => {
+          if (newTimers[Number(key)] > 0) {
+            newTimers[Number(key)] -= 1;
+          }
+        });
+        return newTimers;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    searchResults.forEach(product => {
+      if (product.stock <= 10 && !timers[product.id]) {
+        setTimers(prev => ({
+          ...prev,
+          [product.id]: 3 * 60 * 60 // 3 hours in seconds
+        }));
+      }
+    });
+  }, [searchResults, timers]);
+
   const renderProductCard = (product: Product, index: number) => {
     const showTrending = !showPersonalized && index < 2;
-    const showTimer = !showPersonalized && product.stock <= 10;
-    
+    const showTimer = product.stock <= 10;
+
     const stockMessage = showTimer ? (
       <div className="absolute top-4 right-4 z-20">
         <div className="relative">
@@ -234,7 +269,9 @@ export default function Home() {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-            <span>3h left • {product.stock} left</span>
+            <span>
+              {timers[product.id] ? formatTime(timers[product.id]) : '03:00:00'} • {product.stock} left
+            </span>
           </div>
         </div>
       </div>
@@ -245,7 +282,7 @@ export default function Home() {
         key={product.id} 
         className="group bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden relative"
       >
-        {showTrending && (
+        {showTrending && !showTimer && (
           <div className="absolute top-4 right-4 z-20">
             <div className="relative">
               <div className="absolute inset-0 bg-red-500 blur-sm opacity-50"></div>
