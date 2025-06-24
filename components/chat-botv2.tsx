@@ -16,6 +16,24 @@ type ProductSearchResponse = {
   }>
 }
 
+// Commerce API types
+type CommerceApiSearchResult = {
+  id: string
+  product: {
+    name: string
+  }
+}
+
+type CommerceApiProduct = {
+  id: number
+  brand: string
+  name: string
+  rating: number
+  price: string
+  image: string
+  stock: number
+}
+
 // Update the Message type to include orderDetails
 type Message = {
   id: string
@@ -114,6 +132,10 @@ export default function ChatBot() {
       sender: "bot",
       text: "Hi there!\nWelcome to JB Hi-Fi - where you get the best deals always!\n\nHow can we help you today?",
       timestamp: new Date(),
+      radioOptions: [
+        { id: generateId(), text: "Search for Products (Agentspace API)", action: "search_agentspace_api" },
+        { id: generateId(), text: "Search for Products (Commerce API)", action: "search_commerce_api" },
+      ],
     },
   ])
   const [inputValue, setInputValue] = useState("")
@@ -131,12 +153,16 @@ export default function ChatBot() {
   const [selectedComparisonProduct, setSelectedComparisonProduct] = useState<string | null>(null)
   console.log(selectedComparisonProduct)
   const [email, setEmail] = useState("not set")
+  const [commerceApiResults, setCommerceApiResults] = useState<CommerceApiProduct[]>([])
+  const [isCommerceApiLoading, setIsCommerceApiLoading] = useState(false)
+  const [commerceApiError, setCommerceApiError] = useState<string | null>(null)
   const [selectedRecommendations, setSelectedRecommendations] = useState<RecommendedProduct[]>([])
   const [selectedPriceMatchOption, setSelectedPriceMatchOption] = useState<string | null>(null)
   // Add state for loyalty discount selection
   const [selectedLoyaltyOption, setSelectedLoyaltyOption] = useState<"apply" | "skip" | null>(null)
   // Add a new state variable to track if we're waiting for an email
   const [waitingForEmail, setWaitingForEmail] = useState(false)
+  const [waitingForCommerceQuery, setWaitingForCommerceQuery] = useState(false)
   // Add a new state variable to track if we're showing recommendations
   const [showingRecommendations, setShowingRecommendations] = useState(false)
   // Add a state for selected post-order option
@@ -231,6 +257,43 @@ export default function ChatBot() {
   const isValidEmail = (text: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(text)
+  }
+
+  // Commerce API functions
+  const fetchCommerceApiProductIds = async (query: string): Promise<CommerceApiSearchResult[]> => {
+    const response = await axios.get<{ results: CommerceApiSearchResult[] }>(
+      `https://jb-hifi-sfc.vercel.app/search?q=${query}&items=20`,
+    )
+    return response.data.results
+  }
+
+  const fetchCommerceApiProductDetails = async (productId: string): Promise<CommerceApiProduct> => {
+    const response = await axios.get<CommerceApiProduct>(
+      `https://jb-hifi-search-backend-947132053690.us-central1.run.app/products/${productId}`,
+    )
+    return response.data
+  }
+
+  const searchCommerceApi = async (query: string) => {
+    setIsCommerceApiLoading(true)
+    setCommerceApiError(null)
+    setCommerceApiResults([])
+
+    try {
+      const searchResults = await fetchCommerceApiProductIds(query)
+      if (searchResults && searchResults.length > 0) {
+        const productDetailsPromises = searchResults.map((result) => fetchCommerceApiProductDetails(result.id))
+        const productDetails = await Promise.all(productDetailsPromises)
+        setCommerceApiResults(productDetails)
+      } else {
+        setCommerceApiResults([])
+      }
+    } catch (error) {
+      console.error("Error fetching from Commerce API:", error)
+      setCommerceApiError("Failed to fetch products from Commerce API. Please try again later.")
+    } finally {
+      setIsCommerceApiLoading(false)
+    }
   }
 
   // Add a function to handle showing loyalty benefits after email is provided
@@ -820,7 +883,21 @@ export default function ChatBot() {
     setMessages((prev) => [...prev, newMessage])
     setInputValue("")
 
-    await sendMessageToBackend(newMessage.text)
+    if (waitingForCommerceQuery) {
+      setWaitingForCommerceQuery(false) // Reset the flag
+      // Update the last bot message (which was the input field) to show the user's query
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.inputField?.isActive) {
+            return { ...msg, text: `${msg.text}\nYour search: ${newMessage.text}`, inputField: { ...msg.inputField, isActive: false } }
+          }
+          return msg
+        }),
+      )
+      await searchCommerceApi(newMessage.text)
+    } else {
+      await sendMessageToBackend(newMessage.text)
+    }
   }
 
   // Function to handle quick action buttons
@@ -854,6 +931,47 @@ export default function ChatBot() {
     // For provide_sku and provide_link actions, transform the current message card
     if (action === "provide_sku" || action === "provide_link") {
       setActiveInputMessageId(messageId)
+    } else if (action === "search_commerce_api") {
+      // Handle Commerce API search
+      const newMessage: Message = {
+        id: generateId(),
+        sender: "user",
+        text: "Search for Products (Commerce API)",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, newMessage])
+      // We need to ask the user for the search query
+      const queryRequestMessage: Message = {
+        id: generateId(),
+        sender: "bot",
+        text: "Sure! What product are you looking for?",
+        timestamp: new Date(),
+        // We'll use the existing input field, but set a flag to know we're expecting a commerce search query
+        inputField: { type: "text" as any, value: "", isActive: true }, // Cast to any to allow 'text'
+      }
+      setMessages((prev) => [...prev, queryRequestMessage])
+      // We'll set a state to indicate that the next user input is for Commerce API search
+      // This will be handled in `handleSendMessage`
+      setWaitingForCommerceQuery(true) // Need to add this state variable
+    } else if (action === "search_agentspace_api") {
+      // Handle Agentspace API search (similar to existing logic or ask for query)
+      const newMessage: Message = {
+        id: generateId(),
+        sender: "user",
+        text: "Search for Products (Agentspace API)",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, newMessage])
+      // Placeholder: Add logic to ask for query or proceed if not needed
+      const queryRequestMessage: Message = {
+        id: generateId(),
+        sender: "bot",
+        text: "Sure! What product are you looking for (Agentspace)?",
+        timestamp: new Date(),
+        inputField: { type: "text" as any, value: "", isActive: true },
+      }
+      setMessages((prev) => [...prev, queryRequestMessage])
+      // setWaitingForAgentspaceQuery(true); // Optional: if you want to handle it similarly
       setFieldInputValue("")
 
       // Update the message to include an input field
@@ -1429,6 +1547,65 @@ export default function ChatBot() {
                       </div>
                     </div>
                   )}
+
+                  {/* Display Commerce API Results */}
+                  {isCommerceApiLoading && message.id === messages[messages.length - 1].id && (
+                    <div className="mt-3">
+                      <p className="text-sm">Searching for products...</p>
+                      {/* You can add a spinner or loading animation here */}
+                    </div>
+                  )}
+                  {commerceApiError && message.id === messages[messages.length - 1].id && (
+                    <div className="mt-3 text-red-600">
+                      <p className="text-sm">{commerceApiError}</p>
+                    </div>
+                  )}
+                  {commerceApiResults.length > 0 && message.id === messages[messages.length -1].id && !isCommerceApiLoading && !commerceApiError && (
+                    <div className="mt-4 space-y-3">
+                      <p className="text-sm font-medium">Here are the products I found (Commerce API):</p>
+                      {commerceApiResults.map((product) => (
+                        <div key={product.id} className="rounded-md border border-gray-200 bg-white p-3 shadow-sm">
+                          <div className="flex items-center mb-2">
+                            <Image
+                              src={product.image || "/default-image.png"} // Use a default image if none provided
+                              alt={product.name}
+                              width={60}
+                              height={60}
+                              className="object-contain rounded-md mr-3"
+                            />
+                            <div>
+                              <div className="font-medium text-sm">{product.name}</div>
+                              <div className="text-xs text-gray-600">{product.brand}</div>
+                            </div>
+                          </div>
+                          <div className="mb-1 text-sm font-bold text-black">Price: ${product.price}</div>
+                          <div className="text-xs text-gray-600">Rating: {product.rating}/5</div>
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="text-xs">
+                              {product.stock > 0 ? (
+                                <span className="text-green-600">In Stock ({product.stock})</span>
+                              ) : (
+                                <span className="text-red-600">Out of Stock</span>
+                              )}
+                            </div>
+                            <button
+                              // onClick={() => handleBuyCommerceProduct(product)} // TODO: Implement this if needed
+                              disabled={product.stock <= 0}
+                              className={`flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium ${
+                                product.stock > 0
+                                  ? "bg-yellow-300 text-black hover:bg-yellow-400"
+                                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                              }`}
+                            >
+                              <ShoppingBag className="mr-1 h-3 w-3" />
+                              {product.stock > 0 ? "Buy Now" : "Out of Stock"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
 
                   {message.orderSummary && !message.orderDetails && (
                     <div className="mt-3 bg-yellow-50 rounded-md p-3 border border-yellow-200">
