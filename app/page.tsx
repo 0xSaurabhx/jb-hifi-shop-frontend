@@ -22,6 +22,29 @@ interface Product {
   stock: number;
 }
 
+// Commerce API types
+interface CommerceApiSearchResponse {
+  attributionToken: string;
+  nextPageToken?: string;
+  results: {
+    id: string;
+    product: {
+      name: string;
+    };
+  }[];
+  totalSize: number;
+}
+
+interface CommerceApiProduct {
+  id: number;
+  brand: string;
+  name: string;
+  rating: number;
+  price: string;
+  image: string;
+  stock: number;
+}
+
 interface SearchResponse {
   message?: string;
   results: Product[];
@@ -40,6 +63,7 @@ export default function Home() {
   const [imageError, setImageError] = useState<{[key: number]: boolean}>({});
   const [showPersonalized, setShowPersonalized] = useState(true);
   const [timers, setTimers] = useState<{[key: number]: number}>({});
+  const [searchMode, setSearchMode] = useState<'general' | 'personalized' | 'commerce'>('general');
 
   const { user, isAuthenticated, login, loginAsGuest, logout, getUserId, isTemporaryGuest } = useAuth();
 
@@ -48,6 +72,47 @@ export default function Home() {
 
   const handleLogoClick = () => {
     window.location.reload();
+  };
+
+  // Commerce API functions
+  const fetchCommerceApiProductIds = async (query: string): Promise<CommerceApiSearchResponse['results']> => {
+    const response = await axios.get<CommerceApiSearchResponse>(
+      `https://jb-hifi-sfc.vercel.app/search?q=${query}&items=20`,
+    );
+    return response.data.results;
+  };
+
+  const fetchCommerceApiProductDetails = async (productId: string): Promise<CommerceApiProduct> => {
+    const response = await axios.get<CommerceApiProduct>(
+      `https://jb-hifi-search-backend-947132053690.us-central1.run.app/products/${productId}`,
+    );
+    return response.data;
+  };
+
+  const searchCommerceApi = async (query: string): Promise<Product[]> => {
+    try {
+      const searchResults = await fetchCommerceApiProductIds(query);
+      if (searchResults && searchResults.length > 0) {
+        const productDetailsPromises = searchResults.map((result) => fetchCommerceApiProductDetails(result.id));
+        const productDetails = await Promise.all(productDetailsPromises);
+        
+        // Convert CommerceApiProduct to Product format
+        return productDetails.map(product => ({
+          id: product.id,
+          brand: product.brand,
+          name: product.name,
+          rating: product.rating,
+          price: product.price,
+          image: product.image,
+          stock: product.stock
+        }));
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching from Commerce API:", error);
+      return [];
+    }
   };
 
   const handleImageSearch = async (base64Image: string) => {
@@ -150,24 +215,34 @@ export default function Home() {
     }
   };
 
-  const handleSearch = async (usePersonalized?: boolean) => {
+  const handleSearch = async (usePersonalized?: boolean, mode?: 'general' | 'personalized' | 'commerce') => {
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
     try {
-      const personalized = usePersonalized ?? showPersonalized;
-      const userId = getUserId();
-      const searchUrl = new URL(`${API_BASE_URL}/search/`);
-      searchUrl.searchParams.append('q', searchQuery);
-      if (personalized && userId) {
-        searchUrl.searchParams.append('user_id', userId.toString());
-      }
+      const currentMode = mode || searchMode;
+      
+      if (currentMode === 'commerce') {
+        // Use Commerce API
+        const results = await searchCommerceApi(searchQuery);
+        setSearchResults(results);
+        setPersonalizedMessage(''); // Commerce API doesn't provide personalized messages
+      } else {
+        // Use existing Agentspace API
+        const personalized = usePersonalized ?? showPersonalized;
+        const userId = getUserId();
+        const searchUrl = new URL(`${API_BASE_URL}/search/`);
+        searchUrl.searchParams.append('q', searchQuery);
+        if (personalized && userId) {
+          searchUrl.searchParams.append('user_id', userId.toString());
+        }
 
-      const response = await axios.get<SearchResponse>(searchUrl.toString());
-      setSearchResults(response.data.results);
-      setPersonalizedMessage(personalized ? response.data.message || '' : '');
+        const response = await axios.get<SearchResponse>(searchUrl.toString());
+        setSearchResults(response.data.results);
+        setPersonalizedMessage(personalized ? response.data.message || '' : '');
+      }
     } catch (error) {
-      console.error('Text search failed:', error);
+      console.error('Search failed:', error);
     } finally {
       setIsSearching(false);
     }
@@ -194,7 +269,7 @@ export default function Home() {
     loginAsGuest();
     setShowLoginPopup(false);
     if (searchQuery.trim()) {
-      handleSearch();
+      handleSearch(undefined, searchMode);
     }
   };
 
@@ -419,7 +494,7 @@ export default function Home() {
                   }`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch(undefined, searchMode)}
                   onFocus={handleSearchFocus}
                   disabled={isSearching}
                 />
@@ -443,7 +518,7 @@ export default function Home() {
                   <button 
                     onClick={() => {
                       setSearchType('text');
-                      handleSearch();
+                      handleSearch(undefined, searchMode);
                     }}
                     disabled={isSearching}
                     className={`flex items-center justify-center px-4 py-1 bg-yellow-300 border border-black rounded-md hover:bg-yellow-400 transition-colors ${
@@ -524,7 +599,15 @@ export default function Home() {
           {searchResults.length > 0 && (
             <div className="container mx-auto px-4 py-6">
               <div className="flex flex-col gap-4 mb-6">
-                <h2 className="text-2xl font-bold">Search Results for &quot;{searchQuery}&quot;</h2>
+                <h2 className="text-2xl font-bold">
+                  Search Results for &quot;{searchQuery}&quot; 
+                  {searchMode === 'commerce' && (
+                    <span className="ml-2 text-sm font-normal text-gray-600">(Commerce API)</span>
+                  )}
+                  {searchMode === 'personalized' && (
+                    <span className="ml-2 text-sm font-normal text-gray-600">(Personalized)</span>
+                  )}
+                </h2>
                 
                 {personalizedMessage && showPersonalized && (
                   <div className="bg-gradient-to-r from-yellow-300/20 to-yellow-400/20 rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
@@ -590,13 +673,38 @@ export default function Home() {
                     ))}
                   </select>
 
-                  {showPersonalizationDropdown && (
+                  {/* Search Mode Dropdown - Always visible */}
+                  <select
+                    value={searchMode}
+                    onChange={(e) => {
+                      const newMode = e.target.value as 'general' | 'personalized' | 'commerce';
+                      setSearchMode(newMode);
+                      if (searchQuery.trim()) {
+                        if (newMode === 'personalized') {
+                          handleSearch(true, newMode);
+                        } else if (newMode === 'general') {
+                          handleSearch(false, newMode);
+                        } else if (newMode === 'commerce') {
+                          handleSearch(undefined, newMode);
+                        }
+                      }
+                    }}
+                    className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  >
+                    <option value="general">General Results</option>
+                    {isAuthenticated && !user?.isGuest && (
+                      <option value="personalized">Personalized Results</option>
+                    )}
+                    <option value="commerce">Commerce API Search</option>
+                  </select>
+
+                  {showPersonalizationDropdown && searchMode !== 'commerce' && (
                     <select
                       value={showPersonalized ? 'personalized' : 'general'}
                       onChange={(e) => {
                         const newPers = e.target.value === 'personalized';
                         setShowPersonalized(newPers);
-                        handleSearch(newPers);
+                        handleSearch(newPers, searchMode);
                       }}
                       className="bg-white border border-gray-300 rounded-md py-2 px-4 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     >
