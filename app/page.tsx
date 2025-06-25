@@ -93,19 +93,31 @@ export default function Home() {
     try {
       const searchResults = await fetchCommerceApiProductIds(query);
       if (searchResults && searchResults.length > 0) {
-        const productDetailsPromises = searchResults.map((result) => fetchCommerceApiProductDetails(result.id));
+        // Fetch product details individually and handle failures gracefully
+        const productDetailsPromises = searchResults.map(async (result) => {
+          try {
+            const product = await fetchCommerceApiProductDetails(result.id);
+            return product;
+          } catch (error) {
+            console.warn(`Failed to fetch product details for ID ${result.id}:`, error);
+            return null; // Return null for failed requests
+          }
+        });
+        
         const productDetails = await Promise.all(productDetailsPromises);
         
-        // Convert CommerceApiProduct to Product format
-        return productDetails.map(product => ({
-          id: product.id,
-          brand: product.brand,
-          name: product.name,
-          rating: product.rating,
-          price: product.price,
-          image: product.image,
-          stock: product.stock
-        }));
+        // Filter out null values (failed requests) and convert to Product format
+        return productDetails
+          .filter((product): product is CommerceApiProduct => product !== null)
+          .map(product => ({
+            id: product.id,
+            brand: product.brand,
+            name: product.name,
+            rating: product.rating,
+            price: product.price,
+            image: product.image,
+            stock: product.stock
+          }));
       } else {
         return [];
       }
