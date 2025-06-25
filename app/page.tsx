@@ -35,6 +35,13 @@ interface CommerceApiSearchResponse {
   totalSize: number;
 }
 
+interface CommerceApiSimilarResponse {
+  attributionToken: string;
+  results: {
+    id: string;
+  }[];
+}
+
 interface CommerceApiProduct {
   id: number;
   brand: string;
@@ -64,6 +71,10 @@ export default function Home() {
   const [showPersonalized, setShowPersonalized] = useState(true);
   const [timers, setTimers] = useState<{[key: number]: number}>({});
   const [searchMode, setSearchMode] = useState<'general' | 'personalized' | 'commerce'>('general');
+  const [showSimilarPopup, setShowSimilarPopup] = useState(false);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [selectedProductForSimilar, setSelectedProductForSimilar] = useState<Product | null>(null);
+  const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
 
   const { user, isAuthenticated, login, loginAsGuest, logout, getUserId, isTemporaryGuest } = useAuth();
 
@@ -87,6 +98,51 @@ export default function Home() {
       `https://jb-hifi-search-backend-947132053690.us-central1.run.app/products/${productId}`,
     );
     return response.data;
+  };
+
+  const fetchSimilarProducts = async (productId: number): Promise<CommerceApiSimilarResponse['results']> => {
+    const response = await axios.get<CommerceApiSimilarResponse>(
+      `https://jb-hifi-sfc.vercel.app/similar?productId=${productId}&pageSize=10&visitorId=user_103`,
+    );
+    return response.data.results;
+  };
+
+  const getSimilarProducts = async (product: Product): Promise<Product[]> => {
+    try {
+      const similarResults = await fetchSimilarProducts(product.id);
+      if (similarResults && similarResults.length > 0) {
+        // Fetch product details individually and handle failures gracefully
+        const productDetailsPromises = similarResults.map(async (result) => {
+          try {
+            const productDetails = await fetchCommerceApiProductDetails(result.id);
+            return productDetails;
+          } catch (error) {
+            console.warn(`Failed to fetch similar product details for ID ${result.id}:`, error);
+            return null; // Return null for failed requests
+          }
+        });
+        
+        const productDetails = await Promise.all(productDetailsPromises);
+        
+        // Filter out null values (failed requests) and convert to Product format
+        return productDetails
+          .filter((product): product is CommerceApiProduct => product !== null)
+          .map(product => ({
+            id: product.id,
+            brand: product.brand,
+            name: product.name,
+            rating: product.rating,
+            price: product.price,
+            image: product.image,
+            stock: product.stock
+          }));
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching similar products:", error);
+      return [];
+    }
   };
 
   const searchCommerceApi = async (query: string): Promise<Product[]> => {
@@ -292,6 +348,22 @@ export default function Home() {
     }));
   };
 
+  const handleShowSimilarProducts = async (product: Product) => {
+    setSelectedProductForSimilar(product);
+    setShowSimilarPopup(true);
+    setIsLoadingSimilar(true);
+    setSimilarProducts([]);
+    
+    try {
+      const similarItems = await getSimilarProducts(product);
+      setSimilarProducts(similarItems);
+    } catch (error) {
+      console.error('Failed to fetch similar products:', error);
+    } finally {
+      setIsLoadingSimilar(false);
+    }
+  };
+
   const showPersonalizationDropdown = isAuthenticated && !user?.isGuest;
 
   useEffect(() => {
@@ -421,10 +493,24 @@ export default function Home() {
             <span className="text-2xl font-black text-black">${product.price}</span>
           </div>
 
-          <button className="w-full bg-yellow-300 border-2 border-black py-2 rounded-lg font-bold hover:bg-yellow-400 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
-            <ShoppingCart className="h-4 w-4" />
-            Add to Cart
-          </button>
+          <div className="flex gap-2">
+            <button className="flex-1 bg-yellow-300 border-2 border-black py-2 rounded-lg font-bold hover:bg-yellow-400 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Add to Cart
+            </button>
+            
+            {searchMode === 'commerce' && (
+              <button 
+                onClick={() => handleShowSimilarProducts(product)}
+                className="px-3 bg-blue-500 border-2 border-black rounded-lg font-bold text-white hover:bg-blue-600 active:scale-95 transition-all duration-200 flex items-center justify-center"
+                title="View Similar Items"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -802,6 +888,94 @@ export default function Home() {
         <div className="fixed w-full bottom-6 right-6 z-50">
           <ChatBotV2/>
         </div>
+
+        {/* Similar Products Popup */}
+        {showSimilarPopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-xl font-bold">
+                  Similar to &quot;{selectedProductForSimilar?.name}&quot;
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowSimilarPopup(false);
+                    setSimilarProducts([]);
+                    setSelectedProductForSimilar(null);
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                {isLoadingSimilar ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
+                    <span className="ml-4 text-lg">Finding similar products...</span>
+                  </div>
+                ) : similarProducts.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {similarProducts.map((product) => (
+                      <div key={product.id} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                        <div className="relative h-40 bg-gray-100 p-4">
+                          <div className="absolute top-2 left-2 z-10">
+                            <span className="bg-yellow-300 text-black px-2 py-1 rounded text-xs font-bold border border-black">
+                              {product.brand}
+                            </span>
+                          </div>
+                          <Image
+                            src={imageError[product.id] ? '/default-image.png' : product.image}
+                            width={150}
+                            height={150}
+                            alt={product.name}
+                            onError={() => handleImageError(product.id)}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        
+                        <div className="p-4">
+                          <h4 className="font-bold text-sm mb-2 line-clamp-2">
+                            {product.name}
+                          </h4>
+                          
+                          <div className="flex items-center mb-2">
+                            <div className="flex text-yellow-400">
+                              {[...Array(5)].map((_, i) => (
+                                <svg
+                                  key={i}
+                                  className={`w-3 h-3 ${i < Math.floor(product.rating) ? 'fill-current' : 'fill-gray-300'}`}
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              ))}
+                            </div>
+                            <span className="text-xs text-gray-500 ml-1">({product.rating})</span>
+                          </div>
+                          
+                          <div className="flex items-baseline mb-3">
+                            <span className="text-lg font-black text-black">${product.price}</span>
+                          </div>
+                          
+                          <button className="w-full bg-yellow-300 border border-black py-1.5 rounded font-bold hover:bg-yellow-400 transition-colors text-sm flex items-center justify-center gap-1">
+                            <ShoppingCart className="h-3 w-3" />
+                            Add to Cart
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">No similar products found.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <LoginPopup
           isOpen={showLoginPopup}
