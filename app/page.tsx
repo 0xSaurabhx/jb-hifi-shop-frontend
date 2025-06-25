@@ -57,7 +57,7 @@ export default function Home() {
       // Ensure HTTPS in URL
       const url = `${API_BASE_URL}/search/image${userId ? `?user_id=${userId}` : ''}`;
       
-      const response = await axios({
+      const response = await axios<Product[]>({
         method: 'post',
         url: url,
         data: { image: base64Image },
