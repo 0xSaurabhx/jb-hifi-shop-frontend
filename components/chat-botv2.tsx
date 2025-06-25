@@ -112,6 +112,11 @@ type ChatbotResponse = {
   }>
 }
 
+// Order confirmation response type
+type OrderResponse = {
+  text: string
+}
+
 // Recommended product type
 type RecommendedProduct = {
   id: string
@@ -616,7 +621,7 @@ export default function ChatBot() {
       console.log(text)
 
       if (text.toLowerCase().includes("order_pay")) {
-        const response = await axios.post(PRODUCT_ORDER_CONFIRM_ENDPOINT, {
+        const response = await axios.post<OrderResponse>(PRODUCT_ORDER_CONFIRM_ENDPOINT, {
           productName: selectedProduct?.productName,
           price: selectedProduct?.price,
           availability: selectedProduct?.availability,
@@ -750,7 +755,7 @@ export default function ChatBot() {
         }
 
         // First checkout step - check if user is logged in
-        const response = await axios.post(PRODUCT_ORDER_CONFIRM_ENDPOINT, {
+        const response = await axios.post<OrderResponse>(PRODUCT_ORDER_CONFIRM_ENDPOINT, {
           productName: selectedProduct?.productName,
           price: selectedProduct?.price,
           availability: selectedProduct?.availability,
