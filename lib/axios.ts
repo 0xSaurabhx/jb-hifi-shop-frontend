@@ -41,13 +41,28 @@ const request = async function<T = unknown>(config: string | AxiosRequestConfig)
   const fullConfig: AxiosRequestConfig = typeof config === 'string' ? { url: config } : config;
   
   try {
+    // Determine if the data is URLSearchParams
+    const isFormData = fullConfig.data instanceof URLSearchParams;
+    
+    // Set appropriate content type and body
+    const headers = {
+      ...(fullConfig.headers || {})
+    };
+    
+    // Only set Content-Type if not already set
+    if (!headers['Content-Type'] && !headers['content-type']) {
+      headers['Content-Type'] = isFormData ? 'application/x-www-form-urlencoded' : 'application/json';
+    }
+    
+    let body: string | URLSearchParams | undefined;
+    if (fullConfig.data) {
+      body = isFormData ? (fullConfig.data as URLSearchParams) : JSON.stringify(fullConfig.data);
+    }
+    
     const response = await fetch(fullConfig.url!, {
       method: fullConfig.method || 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(fullConfig.headers || {})
-      },
-      body: fullConfig.data ? JSON.stringify(fullConfig.data) : undefined,
+      headers,
+      body,
       redirect: fullConfig.maxRedirects === 0 ? 'error' : 'follow',
     });
 
