@@ -1,13 +1,13 @@
 interface AxiosRequestConfig {
   method?: string;
   url?: string;
-  data?: any;
+  data?: unknown;
   headers?: Record<string, string>;
   validateStatus?: (status: number) => boolean;
   maxRedirects?: number;
 }
 
-interface AxiosResponse<T = any> {
+interface AxiosResponse<T = unknown> {
   data: T;
   status: number;
   statusText: string;
@@ -19,7 +19,7 @@ interface AxiosError extends Error {
   config: AxiosRequestConfig;
   response?: {
     status: number;
-    data: any;
+    data: unknown;
     headers: Record<string, string>;
   };
 }
@@ -37,7 +37,7 @@ const createAxiosError = (message: string, config: AxiosRequestConfig, response?
   return error;
 };
 
-const request = async function<T = any>(config: string | AxiosRequestConfig): Promise<AxiosResponse<T>> {
+const request = async function<T = unknown>(config: string | AxiosRequestConfig): Promise<AxiosResponse<T>> {
   const fullConfig: AxiosRequestConfig = typeof config === 'string' ? { url: config } : config;
   
   try {
@@ -79,25 +79,25 @@ const request = async function<T = any>(config: string | AxiosRequestConfig): Pr
 };
 
 interface AxiosInstance {
-  <T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>>;
-  <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
-  get: <T = any>(url: string, config?: AxiosRequestConfig) => Promise<AxiosResponse<T>>;
-  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<AxiosResponse<T>>;
-  isAxiosError: (error: any) => error is AxiosError;
+  <T = unknown>(config: AxiosRequestConfig): Promise<AxiosResponse<T>>;
+  <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
+  get: <T = unknown>(url: string, config?: AxiosRequestConfig) => Promise<AxiosResponse<T>>;
+  post: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) => Promise<AxiosResponse<T>>;
+  isAxiosError: (error: unknown) => error is AxiosError;
 }
 
 const axios = request as AxiosInstance;
 
-axios.get = async <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+axios.get = async <T = unknown>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
   return request({ ...config, method: 'GET', url });
 };
 
-axios.post = async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+axios.post = async <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
   return request({ ...config, method: 'POST', url, data });
 };
 
-axios.isAxiosError = (error: any): error is AxiosError => {
-  return error && error.config && error.message !== undefined;
+axios.isAxiosError = (error: unknown): error is AxiosError => {
+  return !!(error && typeof error === 'object' && error !== null && 'config' in error && 'message' in error);
 };
 
 export default axios;
