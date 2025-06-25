@@ -7,7 +7,7 @@ import ChatBotV2 from "@/components/chat-botv2";
 import { useState, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import SearchAnimation from "@/components/animations/SearchAnimation";
-import axios from 'axios';
+import axios from '@/lib/axios';
 import { LoginPopup } from "@/components/auth/LoginPopup";
 import { useAuth } from "@/contexts/AuthContext";
 

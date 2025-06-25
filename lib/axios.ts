@@ -1,0 +1,103 @@
+interface AxiosRequestConfig {
+  method?: string;
+  url?: string;
+  data?: any;
+  headers?: Record<string, string>;
+  validateStatus?: (status: number) => boolean;
+  maxRedirects?: number;
+}
+
+interface AxiosResponse<T = any> {
+  data: T;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  config: AxiosRequestConfig;
+}
+
+interface AxiosError extends Error {
+  config: AxiosRequestConfig;
+  response?: {
+    status: number;
+    data: any;
+    headers: Record<string, string>;
+  };
+}
+
+const createAxiosError = (message: string, config: AxiosRequestConfig, response?: Response): AxiosError => {
+  const error = new Error(message) as AxiosError;
+  error.config = config;
+  if (response) {
+    error.response = {
+      status: response.status,
+      headers: Object.fromEntries(response.headers.entries()),
+      data: null
+    };
+  }
+  return error;
+};
+
+const request = async function<T = any>(config: string | AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  const fullConfig: AxiosRequestConfig = typeof config === 'string' ? { url: config } : config;
+  
+  try {
+    const response = await fetch(fullConfig.url!, {
+      method: fullConfig.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(fullConfig.headers || {})
+      },
+      body: fullConfig.data ? JSON.stringify(fullConfig.data) : undefined,
+      redirect: fullConfig.maxRedirects === 0 ? 'error' : 'follow',
+    });
+
+    const validateStatus = fullConfig.validateStatus || ((status: number) => status >= 200 && status < 300);
+    
+    if (!validateStatus(response.status)) {
+      throw createAxiosError(
+        `Request failed with status ${response.status}`,
+        fullConfig,
+        response
+      );
+    }
+
+    const data = await response.json();
+    
+    return {
+      data,
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+      config: fullConfig
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw createAxiosError(error.message, fullConfig);
+    }
+    throw error;
+  }
+};
+
+interface AxiosInstance {
+  <T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<T>>;
+  <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
+  get: <T = any>(url: string, config?: AxiosRequestConfig) => Promise<AxiosResponse<T>>;
+  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<AxiosResponse<T>>;
+  isAxiosError: (error: any) => error is AxiosError;
+}
+
+const axios = request as AxiosInstance;
+
+axios.get = async <T = any>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+  return request({ ...config, method: 'GET', url });
+};
+
+axios.post = async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> => {
+  return request({ ...config, method: 'POST', url, data });
+};
+
+axios.isAxiosError = (error: any): error is AxiosError => {
+  return error && error.config && error.message !== undefined;
+};
+
+export default axios;

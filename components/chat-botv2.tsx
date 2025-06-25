@@ -2,7 +2,7 @@
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
-import axios from "axios"
+import axios from "../lib/axios"
 import { HelpCircle, XCircle, Search, CheckCircle, ShoppingBag, Package, Tag, Clock, MapPin } from "lucide-react"
 
 // Update the ProductSearchResponse type to include id for each product
@@ -123,8 +123,14 @@ type RecommendedProduct = {
   selected?: boolean
 }
 
+// Function to generate a unique ID
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2)
+}
+
 // Add state for loyalty discount selection
 export default function ChatBot() {
+
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -212,10 +218,7 @@ export default function ChatBot() {
     }
   }, [messages])
 
-  // Function to generate a unique ID
-  const generateId = () => {
-    return Date.now().toString(36) + Math.random().toString(36).substring(2)
-  }
+  // Use the outer generateId function
 
   // Function to extract numeric price from price string
   const extractNumericPrice = (priceStr: string): number => {
@@ -929,7 +932,7 @@ export default function ChatBot() {
   // Function to handle suggestion button clicks
   const handleSuggestionClick = async (messageId: string, text: string, action: string) => {
     // For provide_sku and provide_link actions, transform the current message card
-    if (action === "provide_sku" || action === "provide_link") {
+    if ((action as string) === "provide_sku" || (action as string) === "provide_link") {
       setActiveInputMessageId(messageId)
     } else if (action === "search_commerce_api") {
       // Handle Commerce API search
@@ -946,15 +949,13 @@ export default function ChatBot() {
         sender: "bot",
         text: "Sure! What product are you looking for?",
         timestamp: new Date(),
-        // We'll use the existing input field, but set a flag to know we're expecting a commerce search query
-        inputField: { type: "text" as any, value: "", isActive: true }, // Cast to any to allow 'text'
       }
       setMessages((prev) => [...prev, queryRequestMessage])
       // We'll set a state to indicate that the next user input is for Commerce API search
       // This will be handled in `handleSendMessage`
       setWaitingForCommerceQuery(true) // Need to add this state variable
     } else if (action === "search_agentspace_api") {
-      // Handle Agentspace API search (similar to existing logic or ask for query)
+      // Handle Agentspace API search
       const newMessage: Message = {
         id: generateId(),
         sender: "user",
@@ -962,16 +963,14 @@ export default function ChatBot() {
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, newMessage])
-      // Placeholder: Add logic to ask for query or proceed if not needed
+      
       const queryRequestMessage: Message = {
         id: generateId(),
         sender: "bot",
         text: "Sure! What product are you looking for (Agentspace)?",
         timestamp: new Date(),
-        inputField: { type: "text" as any, value: "", isActive: true },
       }
       setMessages((prev) => [...prev, queryRequestMessage])
-      // setWaitingForAgentspaceQuery(true); // Optional: if you want to handle it similarly
       setFieldInputValue("")
 
       // Update the message to include an input field
@@ -981,7 +980,7 @@ export default function ChatBot() {
             return {
               ...msg,
               inputField: {
-                type: action === "provide_sku" ? "sku" : "link",
+                type: (action as string) === "provide_sku" ? "sku" : "link",
                 value: "",
                 isActive: true,
               },
@@ -1703,7 +1702,7 @@ export default function ChatBot() {
                           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm truncate overflow-hidden"
                           value={fieldInputValue}
                           onChange={handleFieldInputChange}
-                          onKeyDown={(e) => handleFieldKeyPress(e, message.id, message.inputField!.type)}
+                          onKeyDown={(e) => handleFieldKeyPress(e, message.id, message.inputField?.type || "sku")}
                           autoFocus
                         />
                       </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axios from "axios"
+import axios from "@/lib/axios"
 import { Clock, CheckCircle, AlertCircle, ShoppingBag } from "lucide-react"
 import Link from "next/link"
 

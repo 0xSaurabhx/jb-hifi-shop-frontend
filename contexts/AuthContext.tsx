@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '@/lib/axios';
 
 interface User {
   id: number;
